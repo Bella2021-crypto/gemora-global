@@ -1,0 +1,79 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Gemora - Admin Dashboard</title>
+  <link rel="stylesheet" href="../css/styles.css" />
+  <style>
+    body {
+      display: flex;
+      font-family: Arial, sans-serif;
+      margin: 0;
+    }
+    nav {
+      width: 220px;
+      background: #111;
+      color: #fff;
+      min-height: 100vh;
+      padding: 20px 10px;
+    }
+    nav h2 {
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 20px;
+      color: gold;
+    }
+    nav ul {
+      list-style: none;
+      padding: 0;
+    }
+    nav ul li {
+      margin: 15px 0;
+    }
+    nav ul li a {
+      display: block;
+      padding: 12px;
+      background: #222;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 8px;
+      transition: 0.3s;
+    }
+    nav ul li a:hover {
+      background: gold;
+      color: #000;
+    }
+    /* Logout button style */
+    nav ul li.logout a {
+      background: #b30000;
+      text-align: center;
+    }
+    nav ul li.logout a:hover {
+      background: #ff0000;
+      color: #fff;
+    }
+    #adminContent {
+      flex: 1;
+      padding: 30px;
+      background: #f9f9f9;
+    }
+  </style>
+</head>
+<body>
+  <!-- Sidebar Menu -->
+  <nav>
+    <h2>Gemora Admin</h2>
+    <ul>
+      <li><a href="admin.html">🛒 Products</a></li>
+      <li><a href="invoices.html">📄 Invoices</a></li>
+      <li class="logout"><a href="../index.html">🚪 Logout</a></li> <!-- ✅ New Logout button -->
+    </ul>
+  </nav>
+
+  <!-- Main Content -->
+  <div id="adminContent">
+    <h1>Welcome, Admin</h1>
+    <p>Use the sidebar to manage products and view invoices.</p>
+  </div>
+</body>
+</html>
