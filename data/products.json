@@ -1,0 +1,14 @@
+﻿[
+  {
+    "id": 1,
+    "name": "Luxury Watch",
+    "price": 5000,
+    "stock": 5
+  },
+  {
+    "id": 2,
+    "name": "Diamond Ring",
+    "price": 12000,
+    "stock": 2
+  }
+]

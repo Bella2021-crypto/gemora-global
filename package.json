@@ -1,20 +1,19 @@
 {
-  "name": "backend",
+  "name": "gemora",
   "version": "1.0.0",
-  "description": "",
-  "main": "server.js",
+  "private": true,
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
-    "cloudinary": "^2.7.0",
-    "cors": "^2.8.5",
-    "express": "^5.1.0",
-    "pdfkit": "^0.17.1"
+    "cookie": "^0.6.0",
+    "jsonwebtoken": "^9.0.2",
+    "next": "14.2.5",
+    "pg": "^8.11.3",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "sass": "^1.77.8"
   }
 }
