@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Gemora Global | Orders</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-900">
+<header class="bg-black text-yellow-500 p-6 flex justify-between items-center shadow-md">
+  <h1 class="text-2xl font-bold">Order Management</h1>
+  <a href="admin.html" class="bg-yellow-500 text-black px-4 py-2 rounded font-semibold">← Back to Admin</a>
+</header>
+
+<main class="max-w-6xl mx-auto p-6 my-10 bg-white rounded-xl shadow">
+  <h2 class="text-2xl font-bold mb-6 text-center text-yellow-600">Customer Orders</h2>
+
+  <div id="login-box" class="mb-6 text-center">
+    <input id="admin-pass" type="password" placeholder="Enter Admin Token" class="w-64 p-2 border rounded" />
+    <button onclick="loadOrders()" class="bg-black text-yellow-500 px-4 py-2 rounded ml-2 font-semibold">View Orders</button>
+    <p id="msg" class="text-red-500 mt-2"></p>
+  </div>
+
+  <div id="filter-box" class="hidden mb-4 flex flex-wrap gap-3 justify-between items-center">
+    <input id="search" type="text" placeholder="Search by name, phone, or ref"
+      class="p-2 border rounded flex-1 min-w-[200px]" oninput="filterOrders()">
+    <select id="status-filter" class="p-2 border rounded" onchange="filterOrders()">
+      <option value="">All Statuses</option>
+      <option>Pending</option><option>Processing</option><option>Shipped</option><option>Delivered</option>
+    </select>
+    <button onclick="exportCSV()" class="bg-yellow-500 text-black px-4 py-2 rounded font-semibold">⬇ Export CSV</button>
+  </div>
+
+  <div id="orders-list" class="hidden">
+    <div id="orders-container" class="space-y-6"></div>
+  </div>
+</main>
+
+<script>
+const ORDERS_API = "http://localhost:3000/api/orders";
+const ADMIN_TOKEN = "supersecrettoken";
+const WHATSAPP_PREFIX = "https://wa.me/";
+
+let allOrders = [];
+
+async function loadOrders(){
+  const token=document.getElementById("admin-pass").value.trim();
+  if(token!==ADMIN_TOKEN){document.getElementById("msg").innerText="Invalid admin token!";return;}
+  document.getElementById("msg").innerText="";
+  document.getElementById("orders-list").classList.remove("hidden");
+  document.getElementById("filter-box").classList.remove("hidden");
+  try{
+    const res=await fetch(ORDERS_API);
+    const data=await res.json();
+    allOrders=data;
+    renderOrders(data);
+  }catch{
+    document.getElementById("orders-container").innerHTML="<p class='text-center text-red-500'>⚠️ Failed to load orders.</p>";
+  }
+}
+
+function renderOrders(orders){
+  const container=document.getElementById("orders-container");
+  container.innerHTML="";
+  if(!orders.length){container.innerHTML="<p class='text-center text-gray-500'>No orders found.</p>";return;}
+  orders.sort((a,b)=>b.id-a.id).forEach(order=>{
+    const colors={Pending:"bg-yellow-100 text-yellow-800",Processing:"bg-blue-100 text-blue-800",
+      Shipped:"bg-purple-100 text-purple-800",Delivered:"bg-green-100 text-green-800"};
+    const status=order.status||"Pending";
+    const card=document.createElement("div");
+    card.className="border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-lg transition";
+    card.innerHTML=`
+      <div class="flex justify-between items-center mb-3">
+        <h3 class="text-xl font-semibold text-yellow-600">Order #${order.id}</h3>
+        <span class="text-gray-500 text-sm">${new Date(order.date).toLocaleString()}</span>
+      </div>
+      <div class="flex justify-between items-center mb-3">
+        <span class="px-3 py-1 rounded-full text-sm font-medium ${colors[status]}">${status}</span>
+        <select onchange="updateStatus(${order.id}, this.value)" class="border p-1 rounded text-sm">
+          <option disabled selected>Change Status</option>
+          <option>Pending</option><option>Processing</option><option>Shipped</option><option>Delivered</option>
+        </select>
+      </div>
+      <div class="grid sm:grid-cols-2 gap-3 mb-4">
+        <div>
+          <p><b>Name:</b> ${order.name}</p>
+          <p><b>Phone:</b> ${order.phone}</p>
+          <p><b>Email:</b> ${order.email}</p>
+          <p><b>Address:</b> ${order.address}</p>
+        </div>
+        <div>
+          <p><b>Total:</b> ₦${Number(order.total).toLocaleString()}</p>
+          <p><b>Ref:</b> ${order.ref}</p>
+        </div>
+      </div>
+      <ul class="list-disc pl-5 space-y-1 mb-3">
+        ${order.cart.map(i=>`<li>${i.name} (x${i.qty}) - ₦${(i.price*i.qty).toLocaleString()}</li>`).join("")}
+      </ul>
+      <button onclick="notifyCustomer('${order.phone}','${order.name}','${status}')"
+        class="mt-2 bg-green-500 text-white px-3 py-1 rounded">📱 Notify via WhatsApp</button>
+    `;
+    container.appendChild(card);
+  });
+}
+
+function filterOrders(){
+  const q=document.getElementById("search").value.toLowerCase();
+  const s=document.getElementById("status-filter").value;
+  const filtered=allOrders.filter(o=>{
+    const mStatus=!s||(o.status||"Pending")===s;
+    const mText=[o.name,o.phone,o.ref].join(" ").toLowerCase().includes(q);
+    return mStatus&&mText;
+  });
+  renderOrders(filtered);
+}
+
+async function updateStatus(id,status){
+  const order=allOrders.find(o=>o.id===id);
+  if(!order)return;
+  order.status=status;
+  await fetch(`${ORDERS_API}/${id}`,{
+    method:"PUT",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({status})
+  });
+  renderOrders(allOrders);
+}
+
+function exportCSV(){
+  if(!allOrders.length)return alert("No orders to export.");
+  const headers=["ID","Date","Name","Phone","Email","Address","Total","Status","Ref"];
+  const rows=allOrders.map(o=>[o.id,o.date,o.name,o.phone,o.email,o.address,o.total,o.status||"Pending",o.ref]);
+  const csv=[headers.join(","),...rows.map(r=>r.map(x=>`"${String(x).replace(/"/g,'""')}"`).join(","))].join("\n");
+  const blob=new Blob([csv],{type:"text/csv"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;a.download="GemoraOrders.csv";a.click();
+  URL.revokeObjectURL(url);
+}
+
+function notifyCustomer(phone,name,status){
+  const msg=encodeURIComponent(`Hello ${name}, your Gemora order is now *${status}*. Thank you for shopping with us 💛`);
+  window.open(`${WHATSAPP_PREFIX}234${phone.replace(/^0/,"")}?text=${msg}`,"_blank");
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+[
+  {
+    "id": 1,
+    "name": "Crochet Shrug",
+    "price": 8500,
+    "image": "/images/a black open weave shrug.png"
+  },
+  {
+    "id": 2,
+    "name": "crochet Shrug",
+    "price": 3500,
+    "image": "/images/a brown open weave shrug.png"
+  },
+  {
+    "id": 3,
+    "name": "crochet Shrug",
+    "price": 12000,
+    "image": "/images/a light grey open weave shrug.png"
+  }
+]

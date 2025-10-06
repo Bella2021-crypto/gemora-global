@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Gemora Global | Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-900 font-sans">
+
+<!-- Header -->
+<header class="bg-black text-yellow-500 p-6 flex justify-between items-center shadow-md">
+  <h1 class="text-2xl font-bold">Gemora Admin Panel</h1>
+  <div class="space-x-3">
+    <a href="index.html" class="bg-yellow-500 text-black px-4 py-2 rounded font-semibold">🏬 Store</a>
+    <a href="orders.html" class="bg-yellow-500 text-black px-4 py-2 rounded font-semibold">📦 Orders</a>
+  </div>
+</header>
+
+<!-- Product Form -->
+<main class="max-w-4xl mx-auto my-10 bg-white rounded-xl shadow p-6">
+  <h2 class="text-2xl font-bold mb-6 text-yellow-600 text-center">Add a New Product</h2>
+
+  <form id="add-form" class="space-y-4" enctype="multipart/form-data">
+    <input id="admin-pass" type="password" placeholder="Admin Token" class="w-full p-2 border rounded" required />
+    <input id="name" type="text" placeholder="Product Name" class="w-full p-2 border rounded" required />
+    <input id="price" type="number" placeholder="Price (₦)" class="w-full p-2 border rounded" required />
+    <input id="category" type="text" placeholder="Category (e.g. fashion)" class="w-full p-2 border rounded" />
+    <input id="image" type="file" accept="image/*" class="w-full p-2 border rounded bg-gray-50" required />
+    <button type="submit" class="w-full bg-black text-yellow-500 py-2 rounded font-semibold hover:bg-yellow-500 hover:text-black transition">
+      ➕ Add Product
+    </button>
+  </form>
+</main>
+
+<!-- Product List -->
+<section class="max-w-5xl mx-auto my-10 bg-white rounded-xl shadow p-6">
+  <h2 class="text-xl font-semibold mb-4 text-yellow-600 text-center">All Products</h2>
+  <div id="product-list" class="grid sm:grid-cols-2 md:grid-cols-3 gap-6"></div>
+</section>
+
+<script>
+const API_URL = "http://localhost:3000/api/products";
+const UPLOAD_URL = "http://localhost:3000/admin/upload";
+
+async function loadProducts() {
+  try {
+    const res = await fetch(API_URL);
+    const products = await res.json();
+    const container = document.getElementById("product-list");
+    container.innerHTML = "";
+    if (!products.length) {
+      container.innerHTML = "<p class='col-span-full text-center text-gray-500'>No products yet.</p>";
+      return;
+    }
+
+    products.forEach(p => {
+      const card = document.createElement("div");
+      card.className = "border rounded-xl shadow-sm overflow-hidden";
+      card.innerHTML = `
+        <img src="${p.image}" alt="${p.name}" class="w-full h-56 object-cover">
+        <div class="p-4">
+          <h3 class="font-semibold">${p.name}</h3>
+          <p class="text-yellow-600 font-bold mb-2">₦${p.price.toLocaleString()}</p>
+          <button onclick="deleteProduct(${p.id})" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition">🗑 Delete</button>
+        </div>
+      `;
+      container.appendChild(card);
+    });
+  } catch {
+    document.getElementById("product-list").innerHTML = "<p class='col-span-full text-center text-red-500'>Failed to load products.</p>";
+  }
+}
+
+async function deleteProduct(id) {
+  const token = document.getElementById("admin-pass").value.trim();
+  if (!token) return alert("Enter your admin token to delete.");
+  if (!confirm("Delete this product?")) return;
+
+  await fetch(`${API_URL}/${id}`, {
+    method: "DELETE",
+    headers: { "Authorization": `Bearer ${token}` }
+  });
+  loadProducts();
+}
+
+document.getElementById("add-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const token = document.getElementById("admin-pass").value.trim();
+  if (!token) return alert("Enter admin token.");
+
+  const name = document.getElementById("name").value.trim();
+  const price = parseFloat(document.getElementById("price").value);
+  const category = document.getElementById("category").value.trim();
+  const imageFile = document.getElementById("image").files[0];
+
+  if (!imageFile) return alert("Select an image.");
+
+  // Upload image
+  const formData = new FormData();
+  formData.append("image", imageFile);
+  const uploadRes = await fetch(UPLOAD_URL, { method: "POST", body: formData });
+  const imgData = await uploadRes.json();
+
+  // Add product
+  const newProduct = { name, price, category, image: imgData.path };
+  await fetch(API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    },
+    body: JSON.stringify(newProduct)
+  });
+
+  document.getElementById("add-form").reset();
+  loadProducts();
+});
+
+loadProducts();
+</script>
+</body>
+</html>

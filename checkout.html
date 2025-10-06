@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Gemora Global | Checkout</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://js.paystack.co/v1/inline.js"></script>
+</head>
+<body class="bg-gray-100 text-gray-900 font-sans">
+
+<!-- Header -->
+<header class="bg-black text-yellow-500 p-6 flex justify-between items-center shadow-md">
+  <h1 class="text-2xl font-bold">Checkout</h1>
+  <a href="index.html" class="bg-yellow-500 text-black px-4 py-2 rounded font-semibold">← Back to Store</a>
+</header>
+
+<!-- Checkout Section -->
+<main class="max-w-4xl mx-auto my-10 bg-white p-6 rounded-xl shadow">
+  <h2 class="text-2xl font-bold mb-6 text-yellow-600 text-center">Complete Your Order</h2>
+
+  <!-- Cart Summary -->
+  <section class="mb-6">
+    <h3 class="text-lg font-semibold mb-3">Your Cart</h3>
+    <div id="cart-items" class="space-y-3"></div>
+    <p id="cart-total" class="text-xl font-bold text-right mt-4 text-yellow-700"></p>
+  </section>
+
+  <hr class="my-6">
+
+  <!-- Customer Details -->
+  <form id="checkout-form" class="space-y-4">
+    <input type="text" id="name" placeholder="Full Name" class="w-full p-2 border rounded" required />
+    <input type="tel" id="phone" placeholder="Phone Number (e.g. 08012345678)" class="w-full p-2 border rounded" required />
+    <input type="email" id="email" placeholder="Email Address" class="w-full p-2 border rounded" required />
+    <textarea id="address" placeholder="Delivery Address" rows="3" class="w-full p-2 border rounded" required></textarea>
+
+    <button type="submit" class="w-full bg-black text-yellow-500 py-3 rounded font-semibold hover:bg-yellow-500 hover:text-black transition">
+      💳 Pay with Paystack
+    </button>
+  </form>
+</main>
+
+<footer class="bg-black text-yellow-500 py-6 text-center text-sm">
+  © <span id="year"></span> Gemora Global. All Rights Reserved.
+</footer>
+
+<script>
+const PAYSTACK_PUBLIC_KEY = "pk_test_xxxxxxxxxxxxxxxxxxxxx"; // replace with your real key
+const ORDERS_API = "http://localhost:3000/api/orders";
+const WHATSAPP_PREFIX = "https://wa.me/"; // Customer notification
+
+let cart = JSON.parse(localStorage.getItem("cart")) || [];
+
+document.getElementById("year").textContent = new Date().getFullYear();
+
+function renderCart() {
+  const container = document.getElementById("cart-items");
+  container.innerHTML = "";
+  if (!cart.length) {
+    container.innerHTML = "<p class='text-gray-500 text-center'>Your cart is empty.</p>";
+    document.getElementById("cart-total").textContent = "";
+    return;
+  }
+
+  cart.forEach(item => {
+    const div = document.createElement("div");
+    div.className = "flex justify-between items-center border-b pb-2";
+    div.innerHTML = `
+      <div>
+        <p class="font-semibold">${item.name}</p>
+        <p class="text-sm text-gray-500">₦${item.price.toLocaleString()} × ${item.qty}</p>
+      </div>
+      <p class="font-bold">₦${(item.price * item.qty).toLocaleString()}</p>
+    `;
+    container.appendChild(div);
+  });
+
+  const total = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
+  document.getElementById("cart-total").textContent = "Total: ₦" + total.toLocaleString();
+}
+
+function payWithPaystack(e) {
+  e.preventDefault();
+  if (!cart.length) return alert("Your cart is empty.");
+
+  const name = document.getElementById("name").value.trim();
+  const phone = document.getElementById("phone").value.trim();
+  const email = document.getElementById("email").value.trim();
+  const address = document.getElementById("address").value.trim();
+
+  if (!name || !phone || !email || !address) return alert("Please fill all fields.");
+
+  const total = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
+
+  const handler = PaystackPop.setup({
+    key: PAYSTACK_PUBLIC_KEY,
+    email,
+    amount: total * 100, // convert to kobo
+    currency: "NGN",
+    ref: "GEMORA-" + Date.now(),
+    callback: function (response) {
+      saveOrder({ name, phone, email, address, cart, total, ref: response.reference });
+    },
+    onClose: function () {
+      alert("Payment window closed.");
+    }
+  });
+
+  handler.openIframe();
+}
+
+async function saveOrder(order) {
+  try {
+    await fetch(ORDERS_API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(order)
+    });
+
+    localStorage.removeItem("cart");
+    sendWhatsApp(order);
+    alert("Payment successful! Your order has been received 💛");
+    window.location.href = "index.html";
+  } catch {
+    alert("Payment successful but order saving failed. Please contact support.");
+  }
+}
+
+function sendWhatsApp(order) {
+  const msg = encodeURIComponent(`Hi ${order.name}, thank you for your purchase! 🎉
+Your order of ${order.cart.length} item(s) totaling ₦${order.total.toLocaleString()} has been received and is now being processed.
+Ref: ${order.ref}`);
+  window.open(`${WHATSAPP_PREFIX}234${order.phone.replace(/^0/,"")}?text=${msg}`, "_blank");
+}
+
+document.getElementById("checkout-form").addEventListener("submit", payWithPaystack);
+renderCart();
+</script>
+</body>
+</html>
