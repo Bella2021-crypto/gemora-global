@@ -1,0 +1,117 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Gemora Global Store</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1 { color: #333; }
+    .products { display: flex; flex-wrap: wrap; gap: 20px; }
+    .product { border: 1px solid #ddd; padding: 10px; width: 220px; }
+    .product img { width: 100%; height: auto; }
+    button { margin-top: 10px; background: #28a745; color: white; border: none; padding: 8px; cursor: pointer; }
+    #cart { margin-top: 30px; }
+  </style>
+  <script src="https://js.paystack.co/v1/inline.js"></script>
+</head>
+<body>
+  <h1>Welcome to Gemora Global Store</h1>
+  <div class="products" id="products"></div>
+
+  <h2>Your Cart</h2>
+  <div id="cart"></div>
+  <button onclick="checkout()">Checkout</button>
+
+  <script>
+    const API_URL = "http://localhost:5000/products"; // backend
+    let cart = [];
+
+    // Fetch products from backend
+    async function fetchProducts() {
+      const res = await fetch(API_URL);
+      const products = await res.json();
+      document.getElementById("products").innerHTML = products.map(p => `
+        <div class="product">
+          <img src="${p.image}" alt="${p.name}">
+          <h3>${p.name}</h3>
+          <p>₦${p.price}</p>
+          <p>${p.description}</p>
+          <button onclick="addToCart('${p.id}', '${p.name}', ${p.price})">Add to Cart</button>
+        </div>
+      `).join("");
+    }
+
+    function addToCart(id, name, price) {
+      const existing = cart.find(item => item.id === id);
+      if (existing) {
+        existing.qty++;
+      } else {
+        cart.push({ id, name, price, qty: 1 });
+      }
+      renderCart();
+    }
+
+    function renderCart() {
+      if (cart.length === 0) {
+        document.getElementById("cart").innerHTML = "<p>Your cart is empty.</p>";
+        return;
+      }
+      document.getElementById("cart").innerHTML = cart.map(item => `
+        <p>${item.name} x ${item.qty} = ₦${item.price * item.qty}</p>
+      `).join("");
+    }
+
+    function checkout() {
+      if (cart.length === 0) {
+        alert("Your cart is empty!");
+        return;
+      }
+
+      const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+
+      let handler = PaystackPop.setup({
+        key: "pk_test_xxxxxxxxxxxxxxxxxxxxx", // 🔑 replace with your Paystack PUBLIC key
+        email: "customer@email.com",         // you can make this dynamic
+        amount: total * 100,                 // in kobo
+        currency: "NGN",
+        ref: "GEMORA-" + Date.now(),         // unique reference
+        metadata: {
+          cart: cart
+        },
+        callback: function(response){
+          alert("Payment successful! Ref: " + response.reference);
+          cart = []; // clear cart after success
+          renderCart();
+	callback: function(response){
+ 	 fetch("http://localhost:5000/verify-payment", {
+ 	   method: "POST",
+  	  headers: { "Content-Type": "application/json" },
+  	  body: JSON.stringify({
+  	    reference: response.reference,
+   	   cart: cart,
+   	   email: "customer@email.com"
+   	 })
+  	}).then(res => res.json())
+   	 .then(data => {
+     	 if (data.success) {
+        alert("Payment verified & order saved! Ref: " + response.reference);
+        cart = [];
+        renderCart();
+      } else {
+        alert("Payment verified but saving order failed.");
+      }
+    });
+},
+
+        },
+        onClose: function(){
+          alert("Payment cancelled.");
+        }
+      });
+      handler.openIframe();
+    }
+
+    fetchProducts();
+  </script>
+</body>
+</html>

@@ -32,14 +32,11 @@ function save(filePath, data) {
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 }
 
-// ========== PRODUCTS ==========
-
-// Get all products
+// ✅ PRODUCTS API
 app.get("/api/products", (req, res) => {
   res.json(load(PRODUCTS_FILE));
 });
 
-// Add new product (admin only)
 app.post("/api/products", (req, res) => {
   const token = req.headers.authorization;
   if (token !== `Bearer ${process.env.ADMIN_TOKEN}`) {
@@ -54,7 +51,6 @@ app.post("/api/products", (req, res) => {
   res.json(newProduct);
 });
 
-// Delete product (admin only)
 app.delete("/api/products/:id", (req, res) => {
   const token = req.headers.authorization;
   if (token !== `Bearer ${process.env.ADMIN_TOKEN}`) {
@@ -68,8 +64,7 @@ app.delete("/api/products/:id", (req, res) => {
   res.json({ success: true });
 });
 
-// ========== IMAGE UPLOAD ==========
-
+// ✅ IMAGE UPLOADS
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, "images/"),
   filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname)),
@@ -81,9 +76,7 @@ app.post("/admin/upload", upload.single("image"), (req, res) => {
   res.json({ path: "/images/" + req.file.filename });
 });
 
-// ========== ORDERS ==========
-
-// Save a new order
+// ✅ ORDERS API
 app.post("/api/orders", (req, res) => {
   const orders = load(ORDERS_FILE);
   const order = {
@@ -97,12 +90,10 @@ app.post("/api/orders", (req, res) => {
   res.json({ success: true });
 });
 
-// Get all orders
 app.get("/api/orders", (req, res) => {
   res.json(load(ORDERS_FILE));
 });
 
-// Update order status
 app.put("/api/orders/:id", (req, res) => {
   const id = parseInt(req.params.id);
   const { status } = req.body;
@@ -117,8 +108,7 @@ app.put("/api/orders/:id", (req, res) => {
   res.json({ success: true });
 });
 
-// ========== START SERVER ==========
-
+// ✅ SERVER START
 app.listen(PORT, () => {
   console.log(`✅ Gemora Global server running at http://localhost:${PORT}`);
 });

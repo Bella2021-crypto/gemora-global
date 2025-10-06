@@ -1,0 +1,16 @@
+﻿{
+  "products": [
+    {
+      "id": 1,
+      "name": "Luxury Handbag",
+      "price": 120,
+      "image": "product1.jpg"
+    },
+    {
+      "id": 2,
+      "name": "Smartwatch",
+      "price": 85,
+      "image": "product2.jpg"
+    }
+  ]
+}
